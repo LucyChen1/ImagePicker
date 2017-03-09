@@ -1,6 +1,7 @@
 package com.lzy.imagepicker;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -235,7 +236,9 @@ public class ImagePicker {
         mCurrentImageFolderPosition = 0;
     }
 
-    /** 拍照的方法 */
+    /**
+     * 拍照的方法
+     */
     public void takePicture(Activity activity, int requestCode) {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         takePictureIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -249,13 +252,25 @@ public class ImagePicker {
                 // 照相机有自己默认的存储路径，拍摄的照片将返回一个缩略图。如果想访问原始图片，
                 // 可以通过dat extra能够得到原始图片位置。即，如果指定了目标uri，data就没有数据，
                 // 如果没有指定uri，则data就返回有数据！
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(takeImageFile));
+                if (android.os.Build.VERSION.SDK_INT < 24) {
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(takeImageFile));
+                    activity.startActivityForResult(takePictureIntent, requestCode);
+                } else {
+                    ContentValues contentValues = new ContentValues(1);
+                    contentValues.put(MediaStore.Images.Media.DATA, takeImageFile.getAbsolutePath());
+                    Uri uri = activity.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+                    activity.startActivityForResult(takePictureIntent, requestCode);
+
+                }
             }
         }
-        activity.startActivityForResult(takePictureIntent, requestCode);
+        //activity.startActivityForResult(takePictureIntent, requestCode);
     }
 
-    /** 根据系统时间、前缀、后缀产生一个文件 */
+    /**
+     * 根据系统时间、前缀、后缀产生一个文件
+     */
     public static File createFile(File folder, String prefix, String suffix) {
         if (!folder.exists() || !folder.isDirectory()) folder.mkdirs();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.CHINA);
@@ -263,7 +278,9 @@ public class ImagePicker {
         return new File(folder, filename);
     }
 
-    /** 扫描图片 */
+    /**
+     * 扫描图片
+     */
     public static void galleryAddPic(Context context, File file) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         Uri contentUri = Uri.fromFile(file);
@@ -271,7 +288,9 @@ public class ImagePicker {
         context.sendBroadcast(mediaScanIntent);
     }
 
-    /** 图片选中的监听 */
+    /**
+     * 图片选中的监听
+     */
     public interface OnImageSelectedListener {
         void onImageSelected(int position, ImageItem item, boolean isAdd);
     }
